@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>lumen-plate-kit</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #16181d;
+    --panel: #1f232b;
+    --panel-border: #2c313b;
+    --text: #e7e9ee;
+    --muted: #9aa2b1;
+    --accent: #7db4ff;
+    --ok: #7ddc8a;
+    --bad: #ff8585;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.subtitle { margin: 0 0 24px; color: var(--muted); }
+  .boards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .board {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .board h2 { margin: 0 0 12px; font-size: 17px; }
+  .board h2 .size { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .section-title {
+    margin: 16px 0 8px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .gainmaps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .gainmap figure, .preview figure {
+    margin: 0;
+    background: #111318;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .gainmap figcaption, .preview figcaption {
+    padding: 6px 8px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .previews { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .preview figcaption .ms { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .preview figcaption .clli { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .timing {
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #111318;
+    border: 1px solid var(--panel-border);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timing .row { display: flex; justify-content: space-between; gap: 8px; }
+  .timing .row + .row { margin-top: 2px; }
+  .timing .label { color: var(--muted); }
+  .budget-ok { color: var(--ok); }
+  .budget-bad { color: var(--bad); }
+  .error {
+    padding: 12px;
+    border-radius: 8px;
+    background: #3a1d1d;
+    border: 1px solid #5c2a2a;
+    color: var(--bad);
+  }
+  @media (max-width: 1100px) {
+    .boards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<h1>lumen-plate-kit</h1>
+<p class="subtitle">增益图与曝光预览（图和毫秒数来自同一次计算）。运行 <code>make view</code> 刷新。</p>
+<div class="boards" id="boards">
+  <div class="error">正在加载 view/results.json …</div>
+</div>
+<script>
+(function () {
+  const root = document.getElementById('boards');
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function img(path) {
+    const node = el('img');
+    node.src = path;
+    node.alt = path;
+    return node;
+  }
+
+  function budgetClass(value, budget) {
+    return budget > 0 && value <= budget ? 'budget-ok' : (budget > 0 ? 'budget-bad' : '');
+  }
+
+  function renderTiming(plate) {
+    const box = el('div', 'timing');
+    const rows = [];
+    rows.push(['增益图 CPU 时间', plate.computeMs[0].toFixed(2) + ' – ' + plate.computeMs[1].toFixed(2) + ' ms',
+               budgetClass(plate.computeMs[1], plate.computeBudgetMs),
+               '上限 ' + plate.computeBudgetMs + ' ms']);
+    plate.previews.forEach((preview) => {
+      const budget = preview.budgetMs || 0;
+      rows.push(['曝光 ' + preview.exposure + ' 预览',
+                 preview.ms[0].toFixed(2) + ' – ' + preview.ms[1].toFixed(2) + ' ms',
+                 budgetClass(preview.ms[1], budget),
+                 budget > 0 ? '上限 ' + budget + ' ms' : '']);
+    });
+    rows.forEach(([label, value, cls, budget]) => {
+      const row = el('div', 'row');
+      row.appendChild(el('span', 'label', label));
+      const right = el('span', cls, value + (budget ? '（' + budget + '）' : ''));
+      row.appendChild(right);
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  function renderBoard(plate) {
+    const board = el('section', 'board');
+    const heading = el('h2');
+    heading.appendChild(document.createTextNode(plate.name === 'hero' ? '立绘' : '技能图标'));
+    heading.appendChild(el('span', 'size', plate.width + ' × ' + plate.height));
+    board.appendChild(heading);
+
+    board.appendChild(el('div', 'section-title', '增益图（BT.601 全范围，三个平面）'));
+    const gainMaps = el('div', 'gainmaps');
+    ['Y', 'U', 'V'].forEach((planeName, index) => {
+      const figure = el('figure');
+      figure.appendChild(img(plate.gainMap[index]));
+      const caption = el('figcaption');
+      caption.appendChild(el('span', '', planeName + ' 平面'));
+      figure.appendChild(caption);
+      gainMaps.appendChild(figure);
+    });
+    board.appendChild(gainMaps);
+
+    board.appendChild(el('div', 'section-title', '曝光预览'));
+    const previews = el('div', 'previews');
+    plate.previews.forEach((preview) => {
+      const figure = el('figure', 'preview');
+      figure.appendChild(img(preview.path));
+      const caption = el('figcaption');
+      caption.appendChild(el('span', '', '曝光 ' + preview.exposure));
+      caption.appendChild(el('span', 'ms', preview.ms[0].toFixed(2) + ' – ' + preview.ms[1].toFixed(2) + ' ms'));
+      caption.appendChild(el('span', 'clli', 'CLL ' + preview.maxCLL + ' / PALL ' + preview.maxPALL));
+      figure.appendChild(caption);
+      previews.appendChild(figure);
+    });
+    board.appendChild(previews);
+    board.appendChild(renderTiming(plate));
+    return board;
+  }
+
+  fetch('results.json')
+    .then((response) => {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    })
+    .then((data) => {
+      root.classList.remove('error');
+      root.innerHTML = '';
+      data.plates.forEach((plate) => root.appendChild(renderBoard(plate)));
+    })
+    .catch((err) => {
+      root.className = 'error';
+      root.textContent = '加载 results.json 失败：' + err.message + '。请先运行 make view。';
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 CC ?= cc
 CFLAGS ?= -O3 -DNDEBUG -std=gnu11 -fPIC -fvisibility=hidden -Wno-unused-parameter -Wall
 CPPFLAGS += -Iinclude -Ithird_party/libyuv/include
+LDLIBS += -lm -lz
 
 SRCS = \
 	src/alpha.c \
@@ -32,14 +33,27 @@ SRCS = \
 
 OBJS = $(SRCS:.c=.o)
 
-.PHONY: all clean
-all: libavif.a
+TOOL = tools/lumen_plate_kit
+TOOL_OBJ = tools/lumen_plate_kit.o
+
+.PHONY: all clean view
+all: libavif.a $(TOOL)
 
 libavif.a: $(OBJS)
 	ar rcs $@ $(OBJS)
+
+$(TOOL): $(TOOL_OBJ) libavif.a
+	$(CC) $(CFLAGS) -o $@ $(TOOL_OBJ) libavif.a $(LDLIBS)
+
+tools/%.o: tools/%.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+# Regenerates every asset and timing shown in view/index.html from the plates.
+view: $(TOOL)
+	./$(TOOL)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) libavif.a
+	rm -f $(OBJS) libavif.a $(TOOL) $(TOOL_OBJ)

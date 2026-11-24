@@ -1,0 +1,30 @@
+{
+  "plates": [
+  {
+    "name": "hero",
+    "width": 1280,
+    "height": 720,
+    "computeMs": [98.756, 113.745],
+    "computeBudgetMs": 320.000,
+    "gainMap": ["view/hero-gainmap-Y.png", "view/hero-gainmap-U.png", "view/hero-gainmap-V.png"],
+    "previews": [
+      {"exposure": 0.0, "path": "view/hero-exposure-0.0.png", "ms": [4.299, 4.551], "maxCLL": 0, "maxPALL": 0, "budgetMs": 220.000},
+      {"exposure": 1.0, "path": "view/hero-exposure-1.0.png", "ms": [29.349, 30.846], "maxCLL": 410, "maxPALL": 256, "budgetMs": 350.000},
+      {"exposure": 2.5, "path": "view/hero-exposure-2.5.png", "ms": [31.220, 33.119], "maxCLL": 1171, "maxPALL": 781, "budgetMs": 0.000}
+    ]
+  },
+  {
+    "name": "icon",
+    "width": 640,
+    "height": 360,
+    "computeMs": [27.183, 28.841],
+    "computeBudgetMs": 90.000,
+    "gainMap": ["view/icon-gainmap-Y.png", "view/icon-gainmap-U.png", "view/icon-gainmap-V.png"],
+    "previews": [
+      {"exposure": 0.0, "path": "view/icon-exposure-0.0.png", "ms": [1.003, 1.078], "maxCLL": 0, "maxPALL": 0, "budgetMs": 60.000},
+      {"exposure": 1.0, "path": "view/icon-exposure-1.0.png", "ms": [7.248, 7.898], "maxCLL": 410, "maxPALL": 257, "budgetMs": 90.000},
+      {"exposure": 2.5, "path": "view/icon-exposure-2.5.png", "ms": [7.459, 8.033], "maxCLL": 1171, "maxPALL": 781, "budgetMs": 0.000}
+    ]
+  }
+  ]
+}
